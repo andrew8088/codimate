@@ -25,47 +25,9 @@ function toChars(code: string): CodeChar[][] {
       }))
     );
 }
-
-const code1 = toChars(`
+const CODE = toChars(`
 type AnyFunction = (...args: any[]) => any;
-
-function optional<Fn extends AnyFunction>(fn: Fn, errHandler?: (e: any) => void) {
-
-
-
-
-
-
-
-}
-`);
-
-const code2 = toChars(`
-type AnyFunction = (...args: any[]) => any;
-
-function optional<Fn extends AnyFunction>(fn: Fn, errHandler?: (e: any) => void) {
-  return function (...args: Parameters<Fn>): ReturnType<Fn> | void {
-
-
-
-
-
-  }
-}
-`);
-
-const code3 = toChars(`
-type AnyFunction = (...args: any[]) => any;
-
-function optional<Fn extends AnyFunction>(fn: Fn, errHandler?: (e: any) => void) {
-  return function (...args: Parameters<Fn>): ReturnType<Fn> | void {
-      try {
-          return fn(...args);
-      } catch (err) {
-            errHandler?.(err);
-      }
-  }
-}
+type User = { type: "teacher"} | { type: "parent"};
 `);
 
 function slice2D<T>(arr: T[][], idx: number): T[][] {
@@ -91,40 +53,65 @@ function clearLines(arr: CodeChar[][], lineNos: number[]): CodeChar[][] {
   );
 }
 
-const stages = [
-  [0, 1, 2, 10],
-  [0, 1, 2, 3, 9, 10],
-  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-];
+const stages = [[], [0], [0, 1]];
 
 function App() {
-  return <CodeContainer code={code3} />;
+  return <CodeContainer code={CODE} stages={stages} />;
 }
 
 export default App;
 
-const CodeContainer = ({ code }: { code: CodeChar[][] }) => {
-  const totalLength = code.reduce((acc, next) => acc + next.length, 0);
-  const [len, setLen] = useState(0);
+const useIncrDecr = (start: number) => {
+  const [count, setCount] = useState(start);
+  const incr = () => setCount((c) => c + 1);
+  const decr = () => setCount((c) => c - 1);
+  return [count, incr, decr] as const;
+};
 
-  const handler = useCallback(
-    (evt: { key: string }) => {
-      if (evt.key === "ArrowRight" && len <= totalLength) {
-        setLen((i) => i + 1);
-      }
-      if (evt.key === "ArrowLeft" && len <= totalLength) {
-        setLen((i) => i - 1);
-      }
-    },
-    [len, totalLength]
-  );
+const useClampedIncrDecr = (start: number, min: number, max: number) => {
+  const [count, incr, decr] = useIncrDecr(start);
+  const clampedIncr = () => (count < max ? incr() : undefined);
+  const clampedDecr = () => (count > min ? decr() : undefined);
+  return [count, clampedIncr, clampedDecr] as const;
+};
+
+const CodeContainer = ({
+  code,
+  stages,
+}: {
+  code: CodeChar[][];
+  stages: number[][];
+}) => {
+  const [count, incr, decr] = useClampedIncrDecr(0, 0, stages.length - 1);
+
+  const displayCodePrev = stages[count - 1]
+    ? clearLines(code, stages[count - 1])
+    : clearLines(code, stages[0]);
+
+  const displayCodeCurr = stages[count]
+    ? clearLines(code, stages[count])
+    : code;
+
+  console.log(displayCodePrev.map((l) => l.map((c) => c.char)));
+  console.log(displayCodeCurr.map((l) => l.map((c) => c.char)));
+
+  const handler = ({ key }: { key: string }) => {
+    switch (key) {
+      case "ArrowRight":
+        return incr();
+      case "ArrowLeft":
+        return decr();
+      default:
+        return;
+    }
+  };
 
   useEffect(() => {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [handler]);
 
-  return <Code code={clearLines(code, stages[len])} />;
+  return <Code code={displayCodeCurr} />;
 };
 
 const Code = ({ code }: { code: CodeChar[][] }) => {
