@@ -1,59 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
-// import highlight from "highlight.js";
-// import ts from "highlight.js/lib/languages/typescript";
+import { useEffect, useCallback } from "react";
 import "highlight.js/styles/nord.css";
 import "./App.css";
+import { useCodeBeacon } from "./useCodeBeacon";
+import { CodeOutput } from "./code-beacon";
 
-// highlight.registerLanguage("typescript", ts);
+// const textColors = ["#81a1c1", "#d8dee9", "#8fbcbb"] as const;
 
-const textColors = ["#81a1c1", "#d8dee9", "#8fbcbb"] as const;
-
-type CodeChar = {
-  char: string;
-  color: typeof textColors[number];
-};
-
-function toChars(code: string): CodeChar[][] {
-  return code
-    .trim()
-    .split("\n")
-    .map((line) =>
-      line.split("").map((char) => ({
-        char: char,
-        color: textColors[0],
-        // color: textColors[i++ % textColors.length]
-      }))
-    );
-}
-const CODE = toChars(`
+const CODE = `
 type AnyFunction = (...args: any[]) => any;
-type User = { type: "teacher"} | { type: "parent"};
-`);
+type User = { type: "teacher"} | { type: "parent" };
+`;
 
-function slice2D<T>(arr: T[][], idx: number): T[][] {
-  const ret: T[][] = [];
-
-  for (const item of arr) {
-    if (item.length >= idx) {
-      ret.push(item.slice(0, idx));
-      return ret;
-    } else {
-      idx -= item.length;
-      ret.push(item);
-    }
-  }
-  return ret;
-}
-
-function clearLines(arr: CodeChar[][], lineNos: number[]): CodeChar[][] {
-  return arr.map((line: CodeChar[], idx: number) =>
-    lineNos.includes(idx)
-      ? line
-      : line.map((char: CodeChar) => ({ ...char, char: " " }))
-  );
-}
-
-const stages = [[], [0], [0, 1]];
+const stages = [[0], [0, 1]];
 
 function App() {
   return <CodeContainer code={CODE} stages={stages} />;
@@ -61,60 +19,31 @@ function App() {
 
 export default App;
 
-const useIncrDecr = (start: number) => {
-  const [count, setCount] = useState(start);
-  const incr = () => setCount((c) => c + 1);
-  const decr = () => setCount((c) => c - 1);
-  return [count, incr, decr] as const;
-};
-
-const useClampedIncrDecr = (start: number, min: number, max: number) => {
-  const [count, incr, decr] = useIncrDecr(start);
-  const clampedIncr = () => (count < max ? incr() : undefined);
-  const clampedDecr = () => (count > min ? decr() : undefined);
-  return [count, clampedIncr, clampedDecr] as const;
-};
-
 const CodeContainer = ({
   code,
   stages,
 }: {
-  code: CodeChar[][];
+  code: string;
   stages: number[][];
 }) => {
-  const [count, incr, decr] = useClampedIncrDecr(0, 0, stages.length - 1);
+  const [currentCode, tick] = useCodeBeacon(code, stages);
 
-  const displayCodePrev = stages[count - 1]
-    ? clearLines(code, stages[count - 1])
-    : clearLines(code, stages[0]);
-
-  const displayCodeCurr = stages[count]
-    ? clearLines(code, stages[count])
-    : code;
-
-  console.log(displayCodePrev.map((l) => l.map((c) => c.char)));
-  console.log(displayCodeCurr.map((l) => l.map((c) => c.char)));
-
-  const handler = ({ key }: { key: string }) => {
-    switch (key) {
-      case "ArrowRight":
-        return incr();
-      case "ArrowLeft":
-        return decr();
-      default:
-        return;
-    }
-  };
+  const handler = useCallback(
+    ({ key }: { key: string }) => {
+      tick();
+    },
+    [tick]
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [handler]);
 
-  return <Code code={displayCodeCurr} />;
+  return <Code code={currentCode} />;
 };
 
-const Code = ({ code }: { code: CodeChar[][] }) => {
+const Code = ({ code }: { code: CodeOutput }) => {
   return (
     <div className="hljs" style={wrapperStyle}>
       {code.map((line, idx) => (

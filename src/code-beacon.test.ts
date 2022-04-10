@@ -1,4 +1,4 @@
-import { generator, CodeCharacter } from "./code-beacon";
+import { generator, joinAll } from "./code-beacon";
 
 describe("CodeBeacon Generator", () => {
   it("steps through the characters of the code", () => {
@@ -44,16 +44,14 @@ const three = 3;
     expect(out[endOfStep1 - 1]).toEqual(
       "const one = 1;              const three = 3;"
     );
+    expect(out[out.length - 4]).toEqual(
+      "const one = 1;const two =   const three = 3;"
+    );
+    expect(out[out.length - 3]).toEqual(
+      "const one = 1;const two = 2 const three = 3;"
+    );
     expect(out[out.length - 2]).toEqual(
       "const one = 1;const two = 2;const three = 3;"
     );
   });
 });
-
-function joinAll(v: CodeCharacter[][] | any) {
-  if (!v.length) return v.toString();
-  return v
-    .map((line: CodeCharacter[]) => line.map((c) => c.char).join(""))
-    .join("")
-    .trim();
-}
