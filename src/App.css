@@ -50,3 +50,40 @@ p, h1, h2, h3, h4, h5, h6 {
 #root, #__next {
   isolation: isolate;
 }
+
+.main {
+  background: #2e3440;
+  height: 100%;
+  color: #ececec;
+  font-family: Hack, monospace;
+  font-weight: bold;
+}
+
+.code {
+  height: 100%;
+  padding: 20px 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+.line {
+  display: flex;
+  flex-direction: row;
+  height: 30px;
+  font-size: 25px;
+  line-height: 30px;
+}
+
+.lineNo {
+  width: 60px;
+  padding-right: 10px;
+  margin-right: 10px;
+  text-align: right;
+  color: #d8dee9;
+}
+
+.lineCode {
+  margin: 0;
+  color: #d8dee9;
+};
+
