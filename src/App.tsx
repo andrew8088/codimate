@@ -16,15 +16,18 @@ function App() {
 
 export default App;
 
-const CodeContainer = ({ code, stages, }: { code: string; stages: number[][]; }) => {
+const CodeContainer = ({
+  code,
+  stages,
+}: {
+  code: string;
+  stages: number[][];
+}) => {
   const result = useGenerator(() => generator(code, stages), [code, stages]);
 
-  const handler = useCallback(
-    ({ key }: { key: string }) => {
-      result.next();
-    },
-    []
-  );
+  const handler = useCallback(({ key }: { key: string }) => {
+    result.next();
+  }, []);
 
   useEffect(() => {
     document.addEventListener("keydown", handler);

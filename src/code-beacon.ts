@@ -42,24 +42,24 @@ export function* generator(
           current[i][j].char = endOfStep[i][j].char;
           yield {
             code: JSON.parse(JSON.stringify(current)),
-            stepDone: false
+            stepDone: false,
           };
         }
       }
     }
     yield {
       code: JSON.parse(JSON.stringify(current)),
-      stepDone: true
+      stepDone: true,
     };
   }
 }
 
-export function joinAll(v: GeneratorOut): { code: string, stepDone: boolean } {
+export function joinAll(v: GeneratorOut): { code: string; stepDone: boolean } {
   return {
     ...v,
     code: v.code
       .map((line: CodeCharacter[]) => line.map((c) => c.char).join(""))
       .join("")
-      .trim()
+      .trim(),
   };
 }

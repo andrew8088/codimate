@@ -4,22 +4,18 @@ describe("CodeBeacon Generator", () => {
   it("steps through the characters of the code", () => {
     const code = "const";
     const g = generator(code, [[0]]);
-    const out = Array.from(g).map(joinAll).map(v => v.code);
-    expect(out).toEqual([
-      "",
-      "c",
-      "co",
-      "con",
-      "cons",
-      "const",
-      "const",
-    ]);
+    const out = Array.from(g)
+      .map(joinAll)
+      .map((v) => v.code);
+    expect(out).toEqual(["", "c", "co", "con", "cons", "const", "const"]);
   });
 
   it("steps though characters with an array per line", () => {
     const code = "const;\nlet";
     const g = generator(code, [[0, 1]]);
-    const out = Array.from(g).map(joinAll).map(v => v.code);
+    const out = Array.from(g)
+      .map(joinAll)
+      .map((v) => v.code);
     expect(out[6]).toEqual("const;");
     expect(out[out.length - 1]).toEqual("const;let");
   });
@@ -39,7 +35,7 @@ const three = 3;
 
     expect(start.code).toEqual("");
 
-    const stepOneIndex = out.findIndex(item => item.stepDone);
+    const stepOneIndex = out.findIndex((item) => item.stepDone);
 
     expect(out[stepOneIndex].code).toEqual(
       "const one = 1;              const three = 3;"
