@@ -4,25 +4,24 @@ describe("CodeBeacon Generator", () => {
   it("steps through the characters of the code", () => {
     const code = "const";
     const g = generator(code, [[0]]);
-    const out = Array.from(g).map(joinAll);
+    const out = Array.from(g).map(joinAll).map(v => v.code);
     expect(out).toEqual([
       "",
-      "true",
       "c",
       "co",
       "con",
       "cons",
       "const",
-      "true",
+      "const",
     ]);
   });
 
   it("steps though characters with an array per line", () => {
     const code = "const;\nlet";
     const g = generator(code, [[0, 1]]);
-    const out = Array.from(g).map(joinAll);
-    expect(out[7]).toEqual("const;");
-    expect(out[out.length - 2]).toEqual("const;let");
+    const out = Array.from(g).map(joinAll).map(v => v.code);
+    expect(out[6]).toEqual("const;");
+    expect(out[out.length - 1]).toEqual("const;let");
   });
 
   it("replaces chosen lines with spaces the first time, displays them the second time", () => {
@@ -36,21 +35,23 @@ const three = 3;
       [0, 1, 2],
     ]);
 
-    const [start, _, ...out]: string[] = Array.from(g).map(joinAll);
+    const [start, ...out] = Array.from(g).map(joinAll);
 
-    expect(start).toEqual("");
+    expect(start.code).toEqual("");
 
-    const endOfStep1 = out.findIndex((item) => item === "true");
-    expect(out[endOfStep1 - 1]).toEqual(
+    const stepOneIndex = out.findIndex(item => item.stepDone);
+
+    expect(out[stepOneIndex].code).toEqual(
       "const one = 1;              const three = 3;"
     );
-    expect(out[out.length - 4]).toEqual(
+
+    expect(out[out.length - 4].code).toEqual(
       "const one = 1;const two =   const three = 3;"
     );
-    expect(out[out.length - 3]).toEqual(
+    expect(out[out.length - 3].code).toEqual(
       "const one = 1;const two = 2 const three = 3;"
     );
-    expect(out[out.length - 2]).toEqual(
+    expect(out[out.length - 2].code).toEqual(
       "const one = 1;const two = 2;const three = 3;"
     );
   });

@@ -3,10 +3,13 @@ export type CodeCharacter = {
   color: string;
 };
 
-export type CodeOutput = CodeCharacter[][];
 export type CodeStep = number[];
-type EndOfStep = true;
-export type GeneratorOut = CodeOutput | EndOfStep;
+export type CodeOutput = CodeCharacter[][];
+
+export type GeneratorOut = {
+  code: CodeOutput;
+  stepDone: boolean;
+};
 
 export function* generator(
   code: string,
@@ -17,8 +20,10 @@ export function* generator(
     .split("\n")
     .map((line) => line.split("").map((_) => ({ char: " ", color: "white" })));
 
-  yield JSON.parse(JSON.stringify(current));
-  yield true;
+  yield {
+    code: JSON.parse(JSON.stringify(current)),
+    stepDone: true,
+  };
 
   for (let step of steps) {
     const endOfStep: CodeOutput = code
@@ -35,19 +40,26 @@ export function* generator(
       for (let j = 0; j < current[i].length; j++) {
         if (current[i][j].char !== endOfStep[i][j].char) {
           current[i][j].char = endOfStep[i][j].char;
-          yield JSON.parse(JSON.stringify(current));
+          yield {
+            code: JSON.parse(JSON.stringify(current)),
+            stepDone: false
+          };
         }
       }
     }
-    yield true;
+    yield {
+      code: JSON.parse(JSON.stringify(current)),
+      stepDone: true
+    };
   }
 }
 
-export function joinAll(v: void | GeneratorOut): string {
-  if (!v) return "void";
-  if (typeof v === "boolean") return v.toString();
-  return v
-    .map((line: CodeCharacter[]) => line.map((c) => c.char).join(""))
-    .join("")
-    .trim();
+export function joinAll(v: GeneratorOut): { code: string, stepDone: boolean } {
+  return {
+    ...v,
+    code: v.code
+      .map((line: CodeCharacter[]) => line.map((c) => c.char).join(""))
+      .join("")
+      .trim()
+  };
 }

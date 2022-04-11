@@ -1,10 +1,7 @@
 import { useEffect, useCallback } from "react";
-import "highlight.js/styles/nord.css";
 import "./App.css";
-import { useCodeBeacon } from "./useCodeBeacon";
-import { CodeOutput } from "./code-beacon";
-
-// const textColors = ["#81a1c1", "#d8dee9", "#8fbcbb"] as const;
+import { useGenerator } from "use-iterator";
+import { generator, CodeOutput } from "./code-beacon";
 
 const CODE = `
 type AnyFunction = (...args: any[]) => any;
@@ -19,20 +16,14 @@ function App() {
 
 export default App;
 
-const CodeContainer = ({
-  code,
-  stages,
-}: {
-  code: string;
-  stages: number[][];
-}) => {
-  const [currentCode, tick] = useCodeBeacon(code, stages);
+const CodeContainer = ({ code, stages, }: { code: string; stages: number[][]; }) => {
+  const result = useGenerator(() => generator(code, stages), [code, stages]);
 
   const handler = useCallback(
     ({ key }: { key: string }) => {
-      tick();
+      result.next();
     },
-    [tick]
+    []
   );
 
   useEffect(() => {
@@ -40,7 +31,7 @@ const CodeContainer = ({
     return () => document.removeEventListener("keydown", handler);
   }, [handler]);
 
-  return <Code code={currentCode} />;
+  return <Code code={result.value.code} />;
 };
 
 const Code = ({ code }: { code: CodeOutput }) => {
