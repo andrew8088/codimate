@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import "./App.css";
 import { useGenerator } from "use-iterator";
-import { generator, CodeOutput } from "./code-beacon";
+import { generator, CodeOutput, joinAll } from "./code-beacon";
 
 const CODE = `
 type AnyFunction = (...args: any[]) => any;
@@ -25,9 +25,14 @@ const CodeContainer = ({
 }) => {
   const result = useGenerator(() => generator(code, stages), [code, stages]);
 
-  const handler = useCallback(({ key }: { key: string }) => {
-    result.next();
-  }, []);
+  const handler = useCallback(
+    ({ key }: { key: string }) => {
+      if (key === "ArrowRight") {
+        result.next();
+      }
+    },
+    [result]
+  );
 
   useEffect(() => {
     document.addEventListener("keydown", handler);
@@ -38,6 +43,7 @@ const CodeContainer = ({
 };
 
 const Code = ({ code }: { code: CodeOutput }) => {
+  console.log(code);
   return (
     <div className="hljs" style={wrapperStyle}>
       {code.map((line, idx) => (
@@ -76,7 +82,7 @@ const lineNumStyle = {
 
 const codeStyle = {
   fontSize: "20px",
-  fontFamily: '"Cascadia Code"',
+  fontFamily: '"Hack"',
   fontWeight: "bold",
   margin: 0,
 };
