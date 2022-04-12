@@ -1,3 +1,11 @@
+import hljs from "highlight.js/lib/core";
+
+hljs.registerLanguage("ts", require("highlight.js/lib/languages/typescript"));
+
+hljs.addPlugin({
+  "after:highlight": (result) => console.log("after:highlight", result._top),
+});
+
 export type CodeCharacter = {
   char: string;
   color: string;
@@ -62,4 +70,12 @@ export function joinAll(v: GeneratorOut): { code: string; stepDone: boolean } {
       .join("")
       .trim(),
   };
+}
+
+export function parse(code: string): string {
+  const highlightedCode = hljs.highlight(code, {
+    language: "ts",
+  }).value;
+
+  return highlightedCode;
 }
