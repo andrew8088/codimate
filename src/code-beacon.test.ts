@@ -53,13 +53,27 @@ const three = 3;
   });
 
   it("highlights", () => {
-    const out = parse(`
-function someName(param1:string): string {
-  console.log("one", 2, new Date(), false);
-  return param1.toUpperCase();
-}
-`);
+    const out = parse(`const one = 1;`);
 
     console.log(out);
+
+    expect(out).toMatchObject([
+      {
+        text: "const",
+        type: "keyword",
+      },
+      {
+        text: "one =",
+        type: "default",
+      },
+      {
+        text: "1",
+        type: "keyword",
+      },
+      {
+        text: ";",
+        type: "default",
+      },
+    ]);
   });
 });
