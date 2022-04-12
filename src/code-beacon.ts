@@ -2,10 +2,6 @@ import hljs from "highlight.js/lib/core";
 
 hljs.registerLanguage("ts", require("highlight.js/lib/languages/typescript"));
 
-// hljs.addPlugin({
-//   "after:highlight": (result) => console.log("after:highlight", result._top),
-// });
-
 export type CodeCharacter = {
   char: string;
 
@@ -73,25 +69,65 @@ export function joinAll(v: GeneratorOut): { code: string; stepDone: boolean } {
   };
 }
 
+export function toNodes(code: string): SyntaxNode[] {
+  let hlCode = hljs.highlight(code.trim(), { language: "ts" }).value.trim();
+  return parse(hlCode);
+}
+
 type SyntaxNode = {
+  type: string;
   text: string;
-  type: "default" | "keyword";
+  children: SyntaxNode[];
 };
 
-export function parse(code: string): SyntaxNode[] {
-  const hlCode = hljs
-    .highlight(code, {
-      language: "ts",
-    })
-    .value.trim();
+const REGEX_START = /^<span class="([^"]*)".*?>/;
+const REGEX_MIDDLE = /^([^<]+)/;
+const REGEX_END = /^<\/span>/;
 
-  const stack: string[] = [];
+export function parse(hlCode: string, tree: SyntaxNode[]): SyntaxNode[] {
+  if (tree.length === 0) {
+    tree.push({
+      type: "",
+      text: "",
+      children: [],
+    });
+  }
 
-  let regex = /<span class="([^"]*)".*?>/;
+  let open = 0;
+  const curr = tree[tree.length - 1];
 
-  const match = hlCode.match(regex);
+  while (hlCode !== "") {
+    const matchStart = hlCode.match(REGEX_START);
 
-  console.log(match);
+    if (matchStart) {
+      console.log("match start", hlCode);
+      open++;
+      curr.type = matchStart[1];
+      hlCode = hlCode.replace(REGEX_START, "");
+    } else {
+      const matchMiddle = hlCode.match(REGEX_MIDDLE);
+      if (matchMiddle) {
+        console.log("match middle", hlCode);
+        curr.text = matchMiddle[1];
+        curr.type = "default";
+        hlCode = hlCode.replace(REGEX_MIDDLE, "");
+      } else {
+        if (open > 0) {
+          console.log("has opens, checking for closes");
+          const matchEnd = hlCode.match(REGEX_END);
+          if (matchEnd) {
+            hlCode = hlCode.replace(REGEX_END, "");
+          } else {
+            throw new Error("no start or middle");
+          }
+        } else {
+          throw new Error("no start or middle");
+        }
+      }
+    }
 
-  return [];
+    // stack.push(currentNode as SyntaxNode);
+  }
+
+  return tree;
 }

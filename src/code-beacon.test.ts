@@ -1,4 +1,4 @@
-import { generator, joinAll, parse } from "./code-beacon";
+import { generator, joinAll, parse, toNodes } from "./code-beacon";
 
 describe("CodeBeacon Generator", () => {
   it("steps through the characters of the code", () => {
@@ -52,28 +52,23 @@ const three = 3;
     );
   });
 
-  it("highlights", () => {
-    const out = parse(`const one = 1;`);
+  it("highlights 2", () => {
+    const input = `prefix<span class="outside">foo<span class="inside">bar</span></span>suffix`;
+    const out = parse(input, []);
 
     console.log(out);
 
-    expect(out).toMatchObject([
-      {
-        text: "const",
-        type: "keyword",
-      },
-      {
-        text: "one =",
-        type: "default",
-      },
-      {
-        text: "1",
-        type: "keyword",
-      },
-      {
-        text: ";",
-        type: "default",
-      },
-    ]);
+    const [prefix, outside, suffix] = out;
+
+    expect(prefix).toMatchObject({ text: "prefix", type: "default" });
+    expect(suffix).toMatchObject({ text: "suffix", type: "default" });
+
+    expect(outside).toMatchObject({
+      children: [
+        { text: "foo", type: "default" },
+        { text: "bar", type: "inside" },
+      ],
+      type: "outside",
+    });
   });
 });
