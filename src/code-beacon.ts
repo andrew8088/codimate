@@ -77,53 +77,93 @@ export function toNodes(code: string): SyntaxNode[] {
 type SyntaxNode = {
   type: string;
   text: string;
+  tree: SyntaxNode[] | null;
   children: SyntaxNode[];
 };
 
-const REGEX_START = /^<span class="([^"]*)".*?>/;
-const REGEX_MIDDLE = /^([^<]+)/;
-const REGEX_END = /^<\/span>/;
+const REGEX_OPEN = /^<span class="([^"]*)".*?>/;
+const REGEX_BODY = /^([^<]+)/;
+const REGEX_CLOSE = /^<\/span>/;
 
-export function parse(hlCode: string, tree: SyntaxNode[]): SyntaxNode[] {
-  if (tree.length === 0) {
-    tree.push({
+export function parse(hlCode: string): SyntaxNode[] {
+  let open = 0;
+  let i = 0;
+
+  const tree: SyntaxNode[] = [
+    {
       type: "",
       text: "",
+      tree: null,
+      children: [],
+    },
+  ];
+  tree[0].tree = tree;
+  let currTree = tree;
+  let currNode = tree[0];
+
+  const nextNode = () => {
+    currTree.push({
+      type: "",
+      text: "",
+      tree: currTree,
       children: [],
     });
-  }
-
-  let open = 0;
-  const curr = tree[tree.length - 1];
+    currNode = currTree[currTree.length - 1];
+  };
 
   while (hlCode !== "") {
-    const matchStart = hlCode.match(REGEX_START);
+    i++;
 
-    if (matchStart) {
-      console.log("match start", hlCode);
-      open++;
-      curr.type = matchStart[1];
-      hlCode = hlCode.replace(REGEX_START, "");
-    } else {
-      const matchMiddle = hlCode.match(REGEX_MIDDLE);
-      if (matchMiddle) {
-        console.log("match middle", hlCode);
-        curr.text = matchMiddle[1];
-        curr.type = "default";
-        hlCode = hlCode.replace(REGEX_MIDDLE, "");
-      } else {
-        if (open > 0) {
-          console.log("has opens, checking for closes");
-          const matchEnd = hlCode.match(REGEX_END);
-          if (matchEnd) {
-            hlCode = hlCode.replace(REGEX_END, "");
-          } else {
-            throw new Error("no start or middle");
-          }
-        } else {
-          throw new Error("no start or middle");
+    // only one will match
+    const matchOpen = hlCode.match(REGEX_OPEN);
+    const matchBody = hlCode.match(REGEX_BODY);
+    const matchClose = hlCode.match(REGEX_CLOSE);
+
+    if (matchOpen) {
+      console.log(i, "found start", matchOpen[1]);
+
+      if (open > 0) {
+        const textRef = currNode.text;
+        currNode.text = "";
+        const ref = currTree;
+        currTree = currNode.children;
+        nextNode();
+        currNode.tree = ref;
+        if (textRef) {
+          currNode.text = textRef;
+          nextNode();
         }
+
+        console.log(i, "found open when already open, going down");
       }
+      currNode.type = matchOpen[1];
+
+      hlCode = hlCode.replace(REGEX_OPEN, "");
+      open++;
+    } else if (matchBody) {
+      console.log(i, "found middle", matchBody[1]);
+
+      currNode.text = matchBody[1];
+      if (open === 0) {
+        nextNode();
+        console.log(i, "found middle when no open, next");
+      }
+
+      hlCode = hlCode.replace(REGEX_BODY, "");
+    } else if (matchClose) {
+      console.log(i, "found end", matchClose);
+
+      if (open > 0 && currNode.tree) {
+        console.log(currTree);
+        currTree = currNode.tree;
+        console.log(currTree);
+        nextNode();
+        console.log(i, "found end when open, going up");
+      }
+
+      hlCode = hlCode.replace(REGEX_CLOSE, "");
+    } else {
+      throw new Error("found no matches");
     }
 
     // stack.push(currentNode as SyntaxNode);
