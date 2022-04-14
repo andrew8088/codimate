@@ -59,16 +59,15 @@ const three = 3;
     console.log(
       JSON.stringify(
         out,
-        (key: string, value: unknown) => (key === "tree" ? undefined : value),
+        (key: string, value: unknown) => (key === "parent" ? undefined : value),
         "  "
       )
     );
 
-    const [prefix, outside, suffix] = out;
+    const [prefix, outside, suffix] = out.children;
 
     expect(prefix).toMatchObject({ text: "prefix", type: "" });
     expect(suffix).toMatchObject({ text: "suffix", type: "" });
-
     expect(outside).toMatchObject({
       children: [
         { text: "foo", type: "" },

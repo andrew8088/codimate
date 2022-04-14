@@ -71,13 +71,13 @@ export function joinAll(v: GeneratorOut): { code: string; stepDone: boolean } {
 
 export function toNodes(code: string): SyntaxNode[] {
   let hlCode = hljs.highlight(code.trim(), { language: "ts" }).value.trim();
-  return parse(hlCode);
+  return parse(hlCode).children;
 }
 
 type SyntaxNode = {
   type: string;
   text: string;
-  tree: SyntaxNode[] | null;
+  parent: SyntaxNode | null;
   children: SyntaxNode[];
 };
 
@@ -85,80 +85,63 @@ const REGEX_OPEN = /^<span class="([^"]*)".*?>/;
 const REGEX_BODY = /^([^<]+)/;
 const REGEX_CLOSE = /^<\/span>/;
 
-export function parse(hlCode: string): SyntaxNode[] {
+export function parse(hlCode: string): SyntaxNode {
   let open = 0;
-  let i = 0;
 
-  const tree: SyntaxNode[] = [
-    {
-      type: "",
-      text: "",
-      tree: null,
-      children: [],
-    },
-  ];
-  tree[0].tree = tree;
+  const tree: SyntaxNode = {
+    type: "ROOT",
+    text: "",
+    parent: null,
+    children: [],
+  };
   let currTree = tree;
-  let currNode = tree[0];
 
-  const nextNode = () => {
-    currTree.push({
+  const nextNode = (parent: SyntaxNode) => {
+    const n = {
       type: "",
       text: "",
-      tree: currTree,
+      parent,
       children: [],
-    });
-    currNode = currTree[currTree.length - 1];
+    };
+    parent.children.push(n);
+    currTree = parent;
+    return n;
   };
 
-  while (hlCode !== "") {
-    i++;
+  let currNode = nextNode(currTree);
 
+  while (hlCode !== "") {
     // only one will match
     const matchOpen = hlCode.match(REGEX_OPEN);
     const matchBody = hlCode.match(REGEX_BODY);
     const matchClose = hlCode.match(REGEX_CLOSE);
 
     if (matchOpen) {
-      console.log(i, "found start", matchOpen[1]);
-
       if (open > 0) {
+        // already open, so nesting
         const textRef = currNode.text;
         currNode.text = "";
-        const ref = currTree;
-        currTree = currNode.children;
-        nextNode();
-        currNode.tree = ref;
+        currNode = nextNode(currNode);
         if (textRef) {
           currNode.text = textRef;
-          nextNode();
         }
-
-        console.log(i, "found open when already open, going down");
       }
       currNode.type = matchOpen[1];
 
       hlCode = hlCode.replace(REGEX_OPEN, "");
       open++;
     } else if (matchBody) {
-      console.log(i, "found middle", matchBody[1]);
-
       currNode.text = matchBody[1];
       if (open === 0) {
-        nextNode();
-        console.log(i, "found middle when no open, next");
+        currNode = nextNode(currTree);
       }
 
       hlCode = hlCode.replace(REGEX_BODY, "");
     } else if (matchClose) {
-      console.log(i, "found end", matchClose);
-
-      if (open > 0 && currNode.tree) {
-        console.log(currTree);
-        currTree = currNode.tree;
-        console.log(currTree);
-        nextNode();
-        console.log(i, "found end when open, going up");
+      if (open > 0 && currNode.parent) {
+        console.log("before", currTree.type, currNode.parent.type);
+        currNode = nextNode(currNode.parent);
+        console.log("after", currTree.type, currNode.parent.type);
       }
 
       hlCode = hlCode.replace(REGEX_CLOSE, "");
