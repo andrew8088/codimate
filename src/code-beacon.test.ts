@@ -56,6 +56,7 @@ const three = 3;
     const input = `prefix<span class="outside">foo<span class="inside">bar</span></span>suffix`;
     const out = parse(input);
 
+    console.log(input);
     console.log(
       JSON.stringify(
         out,
@@ -64,7 +65,7 @@ const three = 3;
       )
     );
 
-    const [prefix, outside, suffix] = out.children;
+    const [prefix, outside, suffix] = out;
 
     expect(prefix).toMatchObject({ text: "prefix", type: "" });
     expect(suffix).toMatchObject({ text: "suffix", type: "" });

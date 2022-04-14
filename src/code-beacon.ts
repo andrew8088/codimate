@@ -69,88 +69,69 @@ export function joinAll(v: GeneratorOut): { code: string; stepDone: boolean } {
   };
 }
 
-export function toNodes(code: string): SyntaxNode[] {
+export function toNodes(code: string) {
   let hlCode = hljs.highlight(code.trim(), { language: "ts" }).value.trim();
-  return parse(hlCode).children;
+  return parse(hlCode);
 }
 
 type SyntaxNode = {
-  type: string;
-  text: string;
-  parent: SyntaxNode | null;
-  children: SyntaxNode[];
+  name: string;
+  value: string | SyntaxNode[] | null;
+  parent: SyntaxNode[] | null;
 };
 
 const REGEX_OPEN = /^<span class="([^"]*)".*?>/;
 const REGEX_BODY = /^([^<]+)/;
 const REGEX_CLOSE = /^<\/span>/;
 
-export function parse(hlCode: string): SyntaxNode {
-  let open = 0;
+export function parse(hlCode: string): SyntaxNode[] {
+  const stack: { type: string; text: string }[] = [];
 
-  const tree: SyntaxNode = {
-    type: "ROOT",
-    text: "",
-    parent: null,
-    children: [],
-  };
-  let currTree = tree;
-
-  const nextNode = (parent: SyntaxNode) => {
-    const n = {
-      type: "",
-      text: "",
-      parent,
-      children: [],
-    };
-    parent.children.push(n);
-    currTree = parent;
-    return n;
-  };
-
-  let currNode = nextNode(currTree);
-
-  while (hlCode !== "") {
+  while (hlCode) {
     // only one will match
     const matchOpen = hlCode.match(REGEX_OPEN);
     const matchBody = hlCode.match(REGEX_BODY);
     const matchClose = hlCode.match(REGEX_CLOSE);
 
     if (matchOpen) {
-      if (open > 0) {
-        // already open, so nesting
-        const textRef = currNode.text;
-        currNode.text = "";
-        currNode = nextNode(currNode);
-        if (textRef) {
-          currNode.text = textRef;
-        }
-      }
-      currNode.type = matchOpen[1];
-
+      stack.push({ type: "open", text: matchOpen[1] });
       hlCode = hlCode.replace(REGEX_OPEN, "");
-      open++;
     } else if (matchBody) {
-      currNode.text = matchBody[1];
-      if (open === 0) {
-        currNode = nextNode(currTree);
-      }
-
+      stack.push({ type: "body", text: matchBody[1] });
       hlCode = hlCode.replace(REGEX_BODY, "");
     } else if (matchClose) {
-      if (open > 0 && currNode.parent) {
-        console.log("before", currTree.type, currNode.parent.type);
-        currNode = nextNode(currNode.parent);
-        console.log("after", currTree.type, currNode.parent.type);
-      }
-
+      stack.push({ type: "close", text: "" });
       hlCode = hlCode.replace(REGEX_CLOSE, "");
     } else {
-      throw new Error("found no matches");
+      throw new Error("no matches found");
     }
-
-    // stack.push(currentNode as SyntaxNode);
   }
 
-  return tree;
+  console.log(stack);
+
+  const out: SyntaxNode[] = [];
+  let pos = out;
+
+  for (let item of stack) {
+    if (item.type === "open") {
+      const newNode: SyntaxNode = {
+        name: item.text,
+        value: [],
+        parent: pos,
+      };
+      pos.push(newNode);
+      pos = newNode.value as SyntaxNode[];
+    } else if (item.type === "body") {
+      pos.push({ name: "text", value: item.text, parent: pos });
+    } else if (item.type === "close") {
+      console.log("pos", pos);
+      const parent = pos?.[0]?.parent?.[0].parent?.[0].parent;
+
+      if (parent) {
+        pos = parent;
+      }
+    }
+  }
+
+  return out;
 }
