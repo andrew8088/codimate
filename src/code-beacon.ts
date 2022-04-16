@@ -75,18 +75,18 @@ export function toNodes(code: string) {
 }
 
 type SyntaxNode = {
-  name: string;
-  value: string | SyntaxNode[] | null;
-  parent: SyntaxNode[] | null;
+  type: string;
+  value: SyntaxNode[] | string;
 };
 
 const REGEX_OPEN = /^<span class="([^"]*)".*?>/;
 const REGEX_BODY = /^([^<]+)/;
 const REGEX_CLOSE = /^<\/span>/;
 
-export function parse(hlCode: string): SyntaxNode[] {
-  const stack: { type: string; text: string }[] = [];
-
+export function parse(
+  hlCode: string,
+  tree: SyntaxNode[] = []
+): [string, SyntaxNode[]] {
   while (hlCode) {
     // only one will match
     const matchOpen = hlCode.match(REGEX_OPEN);
@@ -94,44 +94,18 @@ export function parse(hlCode: string): SyntaxNode[] {
     const matchClose = hlCode.match(REGEX_CLOSE);
 
     if (matchOpen) {
-      stack.push({ type: "open", text: matchOpen[1] });
-      hlCode = hlCode.replace(REGEX_OPEN, "");
+      const [newCode, subTree] = parse(hlCode.replace(REGEX_OPEN, ""));
+      tree.push({ type: matchOpen[1], value: subTree });
+      hlCode = newCode;
     } else if (matchBody) {
-      stack.push({ type: "body", text: matchBody[1] });
+      tree.push({ type: "text", value: matchBody[1] });
       hlCode = hlCode.replace(REGEX_BODY, "");
     } else if (matchClose) {
-      stack.push({ type: "close", text: "" });
-      hlCode = hlCode.replace(REGEX_CLOSE, "");
+      return [hlCode.replace(REGEX_CLOSE, ""), tree];
     } else {
       throw new Error("no matches found");
     }
   }
 
-  console.log(stack);
-
-  const out: SyntaxNode[] = [];
-  let pos = out;
-
-  for (let item of stack) {
-    if (item.type === "open") {
-      const newNode: SyntaxNode = {
-        name: item.text,
-        value: [],
-        parent: pos,
-      };
-      pos.push(newNode);
-      pos = newNode.value as SyntaxNode[];
-    } else if (item.type === "body") {
-      pos.push({ name: "text", value: item.text, parent: pos });
-    } else if (item.type === "close") {
-      console.log("pos", pos);
-      const parent = pos?.[0]?.parent?.[0].parent?.[0].parent;
-
-      if (parent) {
-        pos = parent;
-      }
-    }
-  }
-
-  return out;
+  return ["", tree];
 }

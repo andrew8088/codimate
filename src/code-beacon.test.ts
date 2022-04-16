@@ -1,4 +1,4 @@
-import { generator, joinAll, parse } from "./code-beacon";
+import { generator, joinAll, parse, toNodes } from "./code-beacon";
 
 describe("CodeBeacon Generator", () => {
   it("steps through the characters of the code", () => {
@@ -52,29 +52,75 @@ const three = 3;
     );
   });
 
-  it("highlights 2", () => {
+  it("highlights", () => {
     const input = `prefix<span class="outside">foo<span class="inside">bar</span></span>suffix`;
-    const out = parse(input);
-
-    console.log(input);
-    console.log(
-      JSON.stringify(
-        out,
-        (key: string, value: unknown) => (key === "parent" ? undefined : value),
-        "  "
-      )
-    );
-
+    const [, out] = parse(input);
     const [prefix, outside, suffix] = out;
 
-    expect(prefix).toMatchObject({ text: "prefix", type: "" });
-    expect(suffix).toMatchObject({ text: "suffix", type: "" });
+    expect(prefix).toMatchObject({ value: "prefix", type: "text" });
+    expect(suffix).toMatchObject({ value: "suffix", type: "text" });
     expect(outside).toMatchObject({
-      children: [
-        { text: "foo", type: "" },
-        { text: "bar", type: "inside" },
-      ],
       type: "outside",
+      value: [
+        {
+          type: "text",
+          value: "foo",
+        },
+        {
+          type: "inside",
+          value: [{ type: "text", value: "bar" }],
+        },
+      ],
     });
   });
+
+  it("highlights", () => {
+    const input = `prefix<span class="outside">foo<span class="inside">bar</span></span>suffix`;
+    const [, out] = parse(input);
+    const [prefix, outside, suffix] = out;
+
+    expect(prefix).toMatchObject({ value: "prefix", type: "text" });
+    expect(suffix).toMatchObject({ value: "suffix", type: "text" });
+    expect(outside).toMatchObject({
+      type: "outside",
+      value: [
+        {
+          type: "text",
+          value: "foo",
+        },
+        {
+          type: "inside",
+          value: [{ type: "text", value: "bar" }],
+        },
+      ],
+    });
+  });
+
+//   it("works", () => {
+//     const input = `
+// function nest(
+//   stack: StackItem[],
+//   tree: SyntaxNode[] = []
+// ): [StackItem[] | null, SyntaxNode[]] {
+//   while (stack) {
+//     const item = stack.shift();
+//     if (!item) return [null, tree];
+
+//     if (item.type === "open") {
+//       tree.push({
+//         type: item.text,
+//         value: nest(stack, [])[1],
+//       });
+//     } else if (item.type === "body") {
+//       tree.push({ type: "text", value: item.text });
+//     } else if (item.type === "close") {
+//       return [stack, tree];
+//     }
+//   }
+
+//   return [stack, tree];
+// }`;
+//     const out = toNodes(input);
+//     console.log(JSON.stringify(out, null, "  "));
+//   });
 });
